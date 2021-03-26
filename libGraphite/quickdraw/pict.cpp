@@ -7,6 +7,8 @@
 #include "libGraphite/quickdraw/pict.hpp"
 #include "libGraphite/quickdraw/internal/packbits.hpp"
 #include "libGraphite/quickdraw/clut.hpp"
+#include "libGraphite/quicktime/imagedesc.hpp"
+#include "libGraphite/quicktime/rle.hpp"
 
 // MARK: - Constants
 
@@ -345,26 +347,16 @@ auto graphite::qd::pict::read_uncompressed_quicktime(graphite::data::reader &pic
 
 auto graphite::qd::pict::read_image_description(graphite::data::reader &pict_reader) -> void
 {
-    auto length = pict_reader.read_long();
-    if (length != 86) {
-        throw std::runtime_error("Invalid PICT image description: " + std::to_string(m_id) + ", " + m_name);
-    }
-    auto compressor = pict_reader.read_long();
-    pict_reader.move(24);
-    auto width = pict_reader.read_short();
-    auto height = pict_reader.read_short();
-    pict_reader.move(8);
-    auto data_size = pict_reader.read_long();
-    pict_reader.move(34);
-    auto depth = pict_reader.read_short();
-    if (depth > 32) {
-        depth -= 32; // grayscale
-    }
-    auto clut = pict_reader.read_signed_short();
+    auto imagedesc = qt::imagedesc(pict_reader);
     
-    switch (compressor) {
+    switch (imagedesc.compressor()) {
+        case 'rle ': {
+            auto surface = qt::rle::decode(imagedesc, pict_reader);
+            m_surface = std::make_shared<graphite::qd::surface>(surface);
+            break;
+        }
         default:
-            pict_reader.move(data_size);
+            pict_reader.move(imagedesc.data_size());
     }
 }
 

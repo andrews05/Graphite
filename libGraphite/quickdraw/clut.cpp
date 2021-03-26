@@ -25,6 +25,16 @@ graphite::qd::clut::clut(graphite::data::reader& reader)
 
 auto graphite::qd::clut::load_resource(int64_t id) -> std::shared_ptr<graphite::qd::clut>
 {
+    if (id == 40) {
+        auto clut = qd::clut();
+        clut.m_id = 40;
+        for (auto i = 0; i < 256; ++i) {
+            auto color = qd::color(i, i, i);
+            clut.m_entries.emplace_back(std::make_tuple(i, color));
+            clut.m_size = 256;
+        }
+        return std::make_shared<graphite::qd::clut>(clut);
+    }
     if (auto res = graphite::rsrc::manager::shared_manager().find("clut", id).lock()) {
         return std::make_shared<graphite::qd::clut>(res->data(), id, res->name());
     }
